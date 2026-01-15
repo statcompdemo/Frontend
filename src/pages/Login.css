@@ -1,0 +1,136 @@
+/* -------------------------------------------------
+   Login page – aligned with app's dark theme
+   ------------------------------------------------- */
+
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+/* Full-screen container */
+.login-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-primary);
+    padding: 1rem;
+}
+
+/* Card that holds the form */
+.login-card {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--border-color);
+    width: 100%;
+    max-width: 450px;
+    padding: 2.5rem 2rem;
+    font-family: 'Poppins', sans-serif;
+}
+
+/* Logo */
+.login-logo-wrapper {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+}
+
+.login-logo {
+    width: 60px;
+    height: 60px;
+    object-fit: contain;
+    /* Optional: filter to match theme if needed, or use a colored PNG */
+    /* filter: drop-shadow(0 0 8px rgba(102, 126, 234, 0.5)); */
+    animation: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+    0% {
+        transform: translateY(0px);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
+
+    100% {
+        transform: translateY(0px);
+    }
+}
+
+/* Title */
+.login-card h1 {
+    margin: 0 0 0.5rem 0;
+    font-size: 2rem;
+    font-weight: 700;
+    text-align: center;
+    background: var(--primary-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Subtitle */
+.login-subtitle {
+    margin: 0 0 1.5rem 0;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    text-align: center;
+}
+
+/* Form elements */
+.login-card input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    margin-top: 1rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: 1rem;
+    color: var(--text-primary);
+    transition: var(--transition);
+    box-sizing: border-box;
+}
+
+.login-card input::placeholder {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+/* Hide placeholder on focus */
+.login-card input:focus::placeholder {
+    opacity: 0;
+}
+
+/* Focus outline */
+.login-card input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+}
+
+/* Submit button */
+.login-card button {
+    width: 100%;
+    margin-top: 1.5rem;
+    padding: 0.75rem 1.5rem;
+    background: var(--primary-gradient);
+    color: white;
+    font-weight: 600;
+    font-size: 1rem;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: var(--transition);
+    box-shadow: var(--shadow-sm);
+}
+
+.login-card button:hover {
+    box-shadow: var(--shadow-glow);
+    transform: translateY(-2px);
+}
+
+/* Small-screen tweak */
+@media (max-width: 480px) {
+    .login-card {
+        padding: 1.5rem 1rem;
+    }
+}

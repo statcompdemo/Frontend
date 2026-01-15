@@ -129,7 +129,7 @@ function App() {
   const [isWIPModalOpen, setIsWIPModalOpen] = useState(false);
 
   return (
-    <Router>
+    <Router basename={import.meta.env.BASE_URL}>
       <div className="app">
         <AppBar />
         <div className="main-layout">

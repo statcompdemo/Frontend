@@ -1,5 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import "./Login.css";
+
+import reactLogo from "../assets/react.svg";
 
 export default function Login() {
     const [username, setUsername] = useState("");
@@ -17,15 +20,8 @@ export default function Login() {
                 },
                 body: JSON.stringify({ username, password }),
             });
-            // console.log(response);
 
             const data = await response.json();
-            console.log("Status:", response.status);
-            console.log("Request payload:", { username, password });
-            console.log("Response status:", response.status);
-            console.log("Response body:", data);
-
-
 
             if (response.ok) {
                 localStorage.setItem("token", data.token);
@@ -41,25 +37,29 @@ export default function Login() {
     };
 
     return (
-        <div style={{ padding: "50px", textAlign: "center" }}>
-            <h1>Login</h1>
-            <form onSubmit={handleLogin}>
-                <input
-                    type="text"
-                    placeholder="Username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                />
-                <br /> <br />
-                <input
-                    type="password"
-                    placeholder="Password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                />
-                <br /> <br />
-                <button type="submit">Login</button>
-            </form>
+        <div className="login-page">
+            <div className="login-card">
+                <div className="login-logo-wrapper">
+                    <img src={reactLogo} alt="Logo" className="login-logo" />
+                </div>
+                <h1>Welcome Back</h1>
+                <p className="login-subtitle">Enter your Username and Password to access your account</p>
+                <form onSubmit={handleLogin}>
+                    <input
+                        type="text"
+                        placeholder="Username"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                    />
+                    <input
+                        type="password"
+                        placeholder="Password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                    />
+                    <button type="submit">Login</button>
+                </form>
+            </div>
         </div>
     );
 }

@@ -10,7 +10,7 @@ import AppLayout from "./layouts/AppLayout";
 
 export default function App() {
     return (
-        <Router>
+        <Router basename={import.meta.env.BASE_URL}>
             <Routes>
                 {/* Public Route */}
                 <Route path="/" element={<Login />} />
