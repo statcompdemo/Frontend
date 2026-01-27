@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { Clock, Download, UserPlus, UserMinus, Briefcase, ShieldCheck, Database, UploadCloud, Receipt, CalendarX, Send, FileText } from 'lucide-react';
+import { log } from '../utils/logger'; // Adjust the import based on your project structure
 
 function PasswordModal({ isOpen, onClose, customerName, onSubmit }) {
     const [password, setPassword] = useState('');
@@ -88,7 +89,7 @@ function Dashboard() {
                 return;
             }
 
-            const response = await fetch('http://103.150.136.44:8000/api/dashboard/processing-logs', {
+            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/dashboard/processing-logs`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -135,23 +136,23 @@ function Dashboard() {
     };
 
     const handlePasswordSubmit = (password) => {
-        console.log(`Password submitted for ${selectedCustomer}:`, password);
+        log('info', `Password submitted for ${selectedCustomer}:`, password);
         alert(`Password "${password}" submitted for ${selectedCustomer}`);
         setModalOpen(false);
     };
 
     const handleDownload = (customerName) => {
-        console.log(`Downloading PF Report for ${customerName}`);
+        log('info', `Downloading PF Report for ${customerName}`);
         alert(`Downloading PF Report for ${customerName}`);
     };
 
     const handleBacklogEmployee = (customerName) => {
-        console.log(`Opening Backlog Employee/New Joinee for ${customerName}`);
+        log('info', `Opening Backlog Employee/New Joinee for ${customerName}`);
         alert(`Backlog Employee/New Joinee for ${customerName}`);
     };
 
     const handleBacklogSalary = (customerName) => {
-        console.log(`Opening Backlog Salary/Exit Employee for ${customerName}`);
+        log('info', `Opening Backlog Salary/Exit Employee for ${customerName}`);
         alert(`Backlog Salary/Exit Employee for ${customerName}`);
     };
 
@@ -170,7 +171,7 @@ function Dashboard() {
             const token = localStorage.getItem("token");
 
             const res = await fetch(
-                "http://103.150.136.44:8000/api/dashboarddailystatus_card/status",
+                `${import.meta.env.VITE_API_BASE_URL}/api/dashboarddailystatus_card/status`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`
@@ -204,7 +205,7 @@ function Dashboard() {
             const token = localStorage.getItem("token");
 
             const res = await fetch(
-                "http://103.150.136.44:8000/api/dashboardassignstatus_card/status",
+                `${import.meta.env.VITE_API_BASE_URL}/api/dashboardassignstatus_card/status`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`
@@ -237,7 +238,7 @@ function Dashboard() {
             const token = localStorage.getItem("token");
 
             const res = await fetch(
-                "http://103.150.136.44:8000/api/dashboard_mailread_time/mail-read-time",
+                `${import.meta.env.VITE_API_BASE_URL}/api/dashboard_mailread_time/mail-read-time`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`
@@ -319,7 +320,7 @@ function Dashboard() {
                 <div
                     className="circle-card"
                     style={{ padding: '0.25rem', justifyContent: 'flex-start', cursor: 'pointer' }}
-                    onClick={() => navigate('/app//MyActivity', { state: { activeTab: 'assigned' } })}
+                    onClick={() => navigate('/app/MyActivity', { state: { activeTab: 'assigned' } })}
                 >
                     <div className="circle-card-title" style={{ marginBottom: '0.25rem', fontSize: '0.7rem' }}>Assigned Task</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0', width: '100%', fontSize: '0.65rem', padding: '0 0.1rem' }}>

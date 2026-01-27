@@ -1,7 +1,9 @@
 import { ArrowLeft, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { log } from '../utils/logger';
 
 function DailyWork() {
+    log('info', "DailyWork component rendered");
     const navigate = useNavigate();
 
     const dailyTasks = [
@@ -39,7 +41,10 @@ function DailyWork() {
         }
     ];
 
+    log('debug', "Daily tasks:", dailyTasks);
+
     const getStatusIcon = (status) => {
+        log('debug', "Getting status icon for status:", status);
         switch (status) {
             case 'Completed':
                 return <CheckCircle2 size={20} color="#00d4aa" />;
@@ -51,6 +56,7 @@ function DailyWork() {
     };
 
     const getPriorityClass = (priority) => {
+        log('debug', "Getting priority class for priority:", priority);
         switch (priority) {
             case 'High':
                 return 'status-badge processing';
@@ -66,7 +72,10 @@ function DailyWork() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
                 <button
                     className="icon-button"
-                    onClick={() => navigate('/my-activity')}
+                    onClick={() => {
+                        log('info', "Navigating back to My Activity");
+                        navigate('/my-activity');
+                    }}
                     title="Back to My Activity"
                 >
                     <ArrowLeft size={20} />
@@ -88,6 +97,7 @@ function DailyWork() {
                     <tbody>
                         {dailyTasks.map((task) => (
                             <tr key={task.id}>
+                                {log('debug', "Rendering task:", task)}
                                 <td>{task.task}</td>
                                 <td>{task.priority}</td>
                                 <td>{task.status}</td>

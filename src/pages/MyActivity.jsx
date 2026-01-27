@@ -15,8 +15,11 @@ import {
     ArrowRightCircle,
     Activity,
     MessageSquare,
-    CheckCircle
+    CheckCircle,
+    Save,
+    XCircle
 } from 'lucide-react';
+import { log } from '../utils/logger';
 
 function DailyWorkTab() {
     const [tasks, setTasks] = useState([
@@ -220,31 +223,45 @@ function DailyWorkTab() {
 }
 
 function AssignedWorkTab() {
-    // const [assignedTasks, setAssignedTasks] = useState([
-    //     { id: 1, date: '2025-12-10', givenBy: 'Rajat Sir', activity: 'Complete Q4 Compliance Audit for all clients', forwardedTo: 'Compliance Team', deadline: '2025-12-20', status: 'In Progress', remark: 'Audit in progress, 60% completed', response: 'Accepted' },
-    //     { id: 2, date: '2025-12-08', givenBy: 'sachin Sir', activity: 'Set up Employee Onboarding System', forwardedTo: 'HR Department', deadline: '2025-12-25', status: 'Pending', remark: 'Waiting for requirements document', response: 'Pending' },
-    //     { id: 3, date: '2025-12-05', givenBy: 'Nilesh Sir', activity: 'Automate Salary Processing for December 2025', forwardedTo: 'Finance Team', deadline: '2025-12-15', status: 'Complete', remark: 'Successfully automated and tested', response: 'Accepted' },
-    //     { id: 4, date: '2025-12-12', givenBy: 'Machindara Sir', activity: 'Generate and verify PF reports for all companies', forwardedTo: 'Accounts Team', deadline: '2025-12-18', status: 'In Progress', remark: 'Reports generated, verification pending', response: 'Accepted' },
-    //     { id: 5, date: '2025-12-11', givenBy: 'Vignesh Sir', activity: 'Update employee records for new joiners', forwardedTo: 'Data Entry Team', deadline: '2025-12-16', status: 'Pending', remark: 'Awaiting employee documents', response: 'Pending' }
-    // ]);
-
     const [assignedTasks, setAssignedTasks] = useState([]);
+    const [error, setError] = useState(null); // State to track errors
 
     useEffect(() => {
         loadAssignedTasks();
     }, []);
 
     const loadAssignedTasks = async () => {
+        log('info', "Fetching assigned tasks...");
+
         try {
-            const res = await fetch("http://103.150.136.44:8000/api/assigned-tasks", {
+            const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/assigned-tasks`, {
                 headers: {
                     Authorization: `Bearer ${localStorage.getItem("token")}`
                 }
             });
-            const data = await res.json();
-            setAssignedTasks(data);
+
+            log('info', "assigned-tasks API response status:", res.status);
+
+            if (!res.ok) {
+                throw new Error(`Error: ${res.status} ${res.statusText}`);
+            }
+
+            const response = await res.json();
+            log('debug', "Debug: assigned-tasks API response:", response);
+            
+            // Check if the response contains the data property and it is an array
+            if (response.success && Array.isArray(response.data)) {
+                setAssignedTasks(response.data);
+                log('info', "Assigned tasks set successfully:", response.data);
+                
+            } else {
+                log('warning', "API response is not an array:", response);
+                setAssignedTasks([]); // Fallback to an empty array
+            }
         } catch (err) {
-            console.error(err);
+            log('error', "Error fetching assigned tasks:", err);
+            setError("Failed to load assigned tasks. Please try again later.");
+            setAssignedTasks([]); // Ensure assignedTasks is always an array
         }
     };
 
@@ -272,7 +289,6 @@ function AssignedWorkTab() {
         });
     };
 
-
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [currentTask, setCurrentTask] = useState(null);
     const [formData, setFormData] = useState({
@@ -283,7 +299,8 @@ function AssignedWorkTab() {
         deadline: '',
         status: 'Pending',
         remark: '',
-        response: 'Pending'
+        response: 'Pending',
+        statusOptions: ['Pending'], // Initialize with default options
     });
 
     const handleInputChange = (e) => {
@@ -323,7 +340,8 @@ function AssignedWorkTab() {
             deadline: '',
             status: 'Pending',
             remark: '',
-            response: 'Pending'
+            response: 'Pending',
+            statusOptions: ['Pending'], // Initialize with default options
         });
         setIsModalOpen(true);
     };
@@ -341,65 +359,114 @@ function AssignedWorkTab() {
         );
     };
 
-    // const getStatusClass = (status) => {
-    //     if (!status) return 'status-badge';
-    //     switch (status.toLowerCase()) {
-    //         case 'complete':
-    //         case 'completed':
-    //             return 'status-badge completed';
-    //         case 'in progress':
-    //             return 'status-badge processing';
-    //         case 'pending':
-    //             return 'status-badge on-hold';
-    //         default:
-    //             return 'status-badge';
-    //     }
-    // };
+    const handleEditRow = (task) => {
+        const statusOptions = RESPONSE_STATUS_MAP[task.response] || [task.status];
 
-    // const formatDate = (dateString) => {
-    //     if (!dateString) return '-';
-    //     return new Date(dateString).toLocaleDateString('en-US', {
-    //         year: 'numeric',
-    //         month: 'short',
-    //         day: 'numeric'
-    //     });
-    // };
+        setCurrentTask(task);
+
+        setFormData({
+            ...task,
+            response: task.response,          // keep existing
+            status: task.status,              // keep existing
+            statusOptions,                    // derive from response
+        });
+    };
+
+    const handleSaveRow = async (taskId) => {
+        const updatedTask = {
+            ...currentTask,
+            status: formData.status,
+            remark: formData.remark,
+            response: formData.response,
+        };
+
+        try {
+            const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/assigned-tasks/${taskId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${localStorage.getItem("token")}`,
+                },
+                body: JSON.stringify(updatedTask),
+            });
+
+            if (!res.ok) {
+                throw new Error(`Error: ${res.status} ${res.statusText}`);
+            }
+
+            const updatedTasks = assignedTasks.map((task) =>
+                task.id === taskId ? updatedTask : task
+            );
+            setAssignedTasks(updatedTasks);
+            setCurrentTask(null);
+            log('info', "Task updated successfully:", updatedTask);
+        } catch (err) {
+            log('error', "Error updating task:", err);
+        }
+    };
+
+    const handleCancelEdit = () => {
+        setCurrentTask(null);
+    };
+
+    const handleResponseChange = (response) => {
+        const statusOptions = RESPONSE_STATUS_MAP[response] || [];
+
+        setFormData(prev => ({
+            ...prev,
+            response,
+            statusOptions,
+            status: statusOptions[0] ?? prev.status,
+        }));
+    };
+
+    const handleEditClick = (task) => {
+        const statusOptions = RESPONSE_STATUS_MAP[task.response] || [task.status];
+
+        setCurrentTask(task);
+        setFormData({
+            response: task.response || "", // Maintain existing response
+            status: task.status || "Pending", // Maintain existing status or default to "Pending"
+            statusOptions, // Set options based on response or current status
+        });
+    };
+
+    const RESPONSE_STATUS_MAP = {
+        Rejected: ["Rejected"],
+        Waiting: ["Pending"],
+        Accepted: ["Pending", "In Progress", "Completed"],
+    };
 
     return (
         <div className="table-container">
-            {/* <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
-                <button
-                    className="icon-button"
-                    onClick={handleAddNew}
-                    title="Add Assigned Work"
-                >
-                    <Plus size={20} />
-                </button>
-            </div> */}
-
-            <table className="dashboard-table">
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Given By</th>
-                        <th>Activity</th>
-                        <th>Forwarded to</th>
-                        <th>Deadline</th>
-                        <th>Status</th>
-                        <th>Remark</th>
-                        <th>Response</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {assignedTasks.length === 0 ? (
+            {error ? (
+                <div style={{ color: 'var(--danger-color)', textAlign: 'center', margin: '1rem 0' }}>
+                    {log('error', "Error state:", error)}
+                    {error}
+                </div>
+            ) : assignedTasks.length === 0 ? (
+                <div style={{ textAlign: "center", margin: "1rem 0", color: "var(--text-secondary)" }}>
+                    {log('info', "No assigned tasks found.")}
+                    No assigned work found.
+                </div>
+            ) : (
+                <table className="dashboard-table">
+                    <thead>
                         <tr>
-                            <td colSpan="8" style={{ textAlign: "center" }}>
-                                No assigned work found
-                            </td>
+                            <th>Date</th>
+                            <th>Given By</th>
+                            <th>Activity</th>
+                            <th>Forwarded to</th>
+                            <th>Deadline</th>
+                            <th>Status</th>
+                            <th>Remark</th>
+                            <th>Response</th>
+                            <th>Actions</th>
                         </tr>
-                    ) : (
-                        assignedTasks.map(task => (
+                    </thead>
+                    <tbody>
+                        {log('debug', "Rendering assigned tasks:", assignedTasks)}
+                        {assignedTasks.map(task => (
                             <tr key={task.id}>
                                 <td>{formatDate(task.date)}</td>
                                 <td>{task.givenBy}</td>
@@ -407,21 +474,78 @@ function AssignedWorkTab() {
                                 <td>{task.forwardedTo}</td>
                                 <td>{formatDate(task.deadline)}</td>
                                 <td>
-                                    <span className={getStatusClass(task.status)}>
-                                        {task.status}
-                                    </span>
+                                    {currentTask?.id === task.id ? (
+                                        <select
+                                            value={formData.status}
+                                            onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                                        >
+                                            {(formData.statusOptions || []).map((option) => (
+                                                <option key={option} value={option}>
+                                                    {option}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    ) : (
+                                        <span className={getStatusClass(task.status)}>{task.status}</span>
+                                    )}
                                 </td>
-                                <td>{task.remark}</td>
                                 <td>
-                                    <span className={`status-badge ${task.response === 'Accepted' ? 'completed' : 'on-hold'}`}>
-                                        {task.response}
-                                    </span>
+                                    {currentTask?.id === task.id ? (
+                                        <textarea
+                                            value={formData.remark}
+                                            onChange={(e) => setFormData({ ...formData, remark: e.target.value })}
+                                        />
+                                    ) : (
+                                        task.remark
+                                    )}
+                                </td>
+                                <td>
+                                    {currentTask?.id === task.id ? (
+                                        <select
+                                            value={formData.response}
+                                            onChange={(e) => handleResponseChange(e.target.value)}
+                                        >
+                                            <option value="Waiting">Waiting</option>
+                                            <option value="Accepted">Accepted</option>
+                                            <option value="Rejected">Rejected</option>
+                                        </select>
+                                    ) : (
+                                        <span>{task.response}</span>
+                                    )}
+                                </td>
+                                <td>
+                                    {currentTask?.id === task.id ? (
+                                        <>
+                                            <button
+                                                onClick={() => handleSaveRow(task.id)}
+                                                title="Save"
+                                                className="icon-button"
+                                            >
+                                                <Save size={20} color="#00d4aa" />
+                                            </button>
+                                            <button
+                                                onClick={handleCancelEdit}
+                                                title="Cancel"
+                                                className="icon-button"
+                                            >
+                                                <XCircle size={20} color="#ff9800" />
+                                            </button>
+                                        </>
+                                    ) : (
+                                        <button
+                                            onClick={() => handleEditRow(task)}
+                                            title="Edit"
+                                            className="icon-button"
+                                        >
+                                            <Edit2 size={20} color="#4facfe" />
+                                        </button>
+                                    )}
                                 </td>
                             </tr>
-                        ))
-                    )}
-                </tbody>
-            </table>
+                        ))}
+                    </tbody>
+                </table>
+            )}
 
             {isModalOpen && (
                 <div className="modal-overlay">

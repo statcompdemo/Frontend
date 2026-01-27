@@ -7,10 +7,13 @@ import DailyWork from "./pages/DailyWork";
 import AssignedWork from "./pages/AssignedWork";
 
 import AppLayout from "./layouts/AppLayout";
+import { log } from "./utils/logger"; // Adjust the import based on your project structure
 
 export default function App() {
+    log('debug', "App component rendered");
     return (
         <Router basename={import.meta.env.BASE_URL}>
+            {log('debug', "Router initialized with base URL:", import.meta.env.BASE_URL)}
             <Routes>
                 {/* Public Route */}
                 <Route path="/" element={<Login />} />

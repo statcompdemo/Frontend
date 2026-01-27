@@ -1,8 +1,10 @@
 import { ArrowLeft, Check, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
+import { log } from '../utils/logger';
 
 function AssignedWork() {
+    log('info', "AssignedWork component rendered");
     const navigate = useNavigate();
 
     const [assignedTasks, setAssignedTasks] = useState([
@@ -63,7 +65,10 @@ function AssignedWork() {
         }
     ]);
 
+    log('debug', "Initial assigned tasks:", assignedTasks);
+
     const handleResponse = (taskId, responseType) => {
+        log('info', `Updating response for task ID ${taskId} to ${responseType}`);
         setAssignedTasks(prevTasks =>
             prevTasks.map(task =>
                 task.id === taskId ? { ...task, response: responseType } : task
@@ -72,6 +77,7 @@ function AssignedWork() {
     };
 
     const getStatusClass = (status) => {
+        log('debug', "Getting status class for status:", status);
         switch (status.toLowerCase()) {
             case 'complete':
                 return 'status-badge completed';
@@ -85,6 +91,7 @@ function AssignedWork() {
     };
 
     const formatDate = (dateString) => {
+        log('debug', "Formatting date:", dateString);
         return new Date(dateString).toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'short',
@@ -97,7 +104,10 @@ function AssignedWork() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
                 <button
                     className="icon-button"
-                    onClick={() => navigate('/my-activity')}
+                    onClick={() => {
+                        log('info', "Navigating back to My Activity");
+                        navigate('/my-activity');
+                    }}
                     title="Back to My Activity"
                 >
                     <ArrowLeft size={20} />
@@ -122,6 +132,7 @@ function AssignedWork() {
                     <tbody>
                         {assignedTasks.map((task) => (
                             <tr key={task.id}>
+                                {log('debug', "Rendering task:", task)}
                                 <td>{formatDate(task.date)}</td>
                                 <td>{task.givenBy}</td>
                                 <td>{task.activity}</td>
