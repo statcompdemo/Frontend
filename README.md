@@ -63,9 +63,6 @@ A professional, modern React-based dashboard application for managing SPG user a
 ## Installation
 
 1. Navigate to the project directory:
-```bash
-cd "c:/Users/nitesh kumar/Desktop/Antigravity/spg_user Dashboard"
-```
 
 2. Install dependencies (already done):
 ```bash
