@@ -2,18 +2,21 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Login.css";
 
+import { API_BASE_URL } from "../config";
 import reactLogo from "../assets/react.svg";
 
 export default function Login() {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
+    const [error, setError] = useState("");
     const navigate = useNavigate();
 
     const handleLogin = async (e) => {
         e.preventDefault();
+        setError(""); // Clear previous errors
 
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/auth/login`, {
+            const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -25,14 +28,15 @@ export default function Login() {
 
             if (response.ok) {
                 localStorage.setItem("token", data.token);
-                alert("Login successfully");
+                // Redirect directly without alert
                 navigate("/app/dashboard");
             } else {
-                alert(data.detail || "Login failed");
+                // Show standard error message instead of backend detail
+                setError("Wrong username or password");
             }
         } catch (error) {
             console.error("Login error:", error);
-            alert(`Login error: ${error.message}`);
+            setError("Connection error. Please try again.");
         }
     };
 
@@ -49,15 +53,22 @@ export default function Login() {
                         type="text"
                         placeholder="Username"
                         value={username}
-                        onChange={(e) => setUsername(e.target.value)}
+                        onChange={(e) => {
+                            setUsername(e.target.value);
+                            if (error) setError(""); // Clear error when typing
+                        }}
                     />
                     <input
                         type="password"
                         placeholder="Password"
                         value={password}
-                        onChange={(e) => setPassword(e.target.value)}
+                        onChange={(e) => {
+                            setPassword(e.target.value);
+                            if (error) setError(""); // Clear error when typing
+                        }}
                     />
                     <button type="submit">Login</button>
+                    {error && <div className="login-error">{error}</div>}
                 </form>
             </div>
         </div>

@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { API_BASE_URL } from '../config';
+
 import {
     Calendar,
     ClipboardList,
@@ -21,48 +23,58 @@ import {
 } from 'lucide-react';
 import { log } from '../utils/logger';
 
-function DailyWorkTab() {
-    const [tasks, setTasks] = useState([
-        { id: 1, task: 'Process salary sheets for December 2025', priority: 'High', status: 'In Progress', dueTime: '2025-12-31', assignedTo: 'You' },
-        { id: 2, task: 'Review PF reports for Epimoney Private Limited', priority: 'Medium', status: 'Pending', dueTime: '2025-12-25', assignedTo: 'You' },
-        { id: 3, task: 'Update employee records for new joiners', priority: 'High', status: 'Completed', dueTime: '2025-12-20', assignedTo: 'You' }
-    ]);
 
+function DailyWorkTab() {
+    const [tasks, setTasks] = useState([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [currentTask, setCurrentTask] = useState(null);
+
     const [formData, setFormData] = useState({
-        task: '',
-        priority: 'Medium',
-        status: 'Pending',
-        dueTime: '',
-        assignedTo: 'You'
+        task: "",
+        priority: "Medium",
+        status: "Pending",
+        dueTime: "",
+        assignedTo: "You"
     });
 
-    const getStatusIcon = (status) => {
-        switch (status) {
-            case 'Completed':
-                return <CheckCircle2 size={20} color="#00d4aa" />;
-            case 'In Progress':
-                return <Clock size={20} color="#4facfe" />;
-            default:
-                return <AlertCircle size={20} color="#ff9800" />;
-        }
-    };
+    useEffect(() => {
+        loadDailyTasks();
+    }, []);
 
-    const getPriorityClass = (priority) => {
-        switch (priority) {
-            case 'High':
-                return 'status-badge processing';
-            case 'Medium':
-                return 'status-badge on-hold';
-            default:
-                return 'status-badge completed';
+    const loadDailyTasks = async () => {
+        try {
+            const res = await fetch(
+                `${API_BASE_URL}/api/daily-tasks`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem("token")}`
+                    }
+                }
+            );
+
+            const data = await res.json();
+            setTasks(Array.isArray(data.data) ? data.data : []);
+        } catch (err) {
+            log("error", "Failed to load daily tasks", err);
+            setTasks([]);
         }
     };
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
-        setFormData({ ...formData, [name]: value });
+        setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleAddNew = () => {
+        setCurrentTask(null);
+        setFormData({
+            task: "",
+            priority: "Medium",
+            status: "Pending",
+            dueTime: "",
+            assignedTo: "You"
+        });
+        setIsModalOpen(true);
     };
 
     const handleEdit = (task) => {
@@ -71,148 +83,155 @@ function DailyWorkTab() {
         setIsModalOpen(true);
     };
 
-    const handleDelete = (id) => {
-        if (window.confirm('Are you sure you want to delete this task?')) {
-            setTasks(tasks.filter(task => task.id !== id));
+    const handleDelete = async (id) => {
+        if (!window.confirm("Delete this task?")) return;
+
+        try {
+            await fetch(
+                `${API_BASE_URL}/api/daily-tasks/${id}`,
+                {
+                    method: "DELETE",
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem("token")}`
+                    }
+                }
+            );
+
+            setTasks(prev => prev.filter(t => t.id !== id));
+        } catch (err) {
+            log("error", "Delete failed", err);
         }
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        if (currentTask) {
-            setTasks(tasks.map(t => t.id === currentTask.id ? { ...formData, id: currentTask.id } : t));
-        } else {
-            setTasks([...tasks, { ...formData, id: Date.now() }]);
+
+        try {
+            const url = currentTask
+                ? `${API_BASE_URL}/api/daily-tasks/${currentTask.id}`
+                : `${API_BASE_URL}/api/daily-tasks`;
+
+            const method = currentTask ? "PUT" : "POST";
+
+            const res = await fetch(url, {
+                method,
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${localStorage.getItem("token")}`
+                },
+                body: JSON.stringify(formData)
+            });
+
+            const result = await res.json();
+
+            if (currentTask) {
+                setTasks(prev =>
+                    prev.map(t => t.id === currentTask.id ? result.data : t)
+                );
+            } else {
+                setTasks(prev => [...prev, result.data]);
+            }
+
+            setIsModalOpen(false);
+            setCurrentTask(null);
+
+        } catch (err) {
+            log("error", "Save failed", err);
         }
-        handleCloseModal();
-    };
-
-    const handleAddNew = () => {
-        setCurrentTask(null);
-        setFormData({
-            task: '',
-            priority: 'Medium',
-            status: 'Pending',
-            dueTime: '',
-            assignedTo: 'You'
-        });
-        setIsModalOpen(true);
-    };
-
-    const handleCloseModal = () => {
-        setIsModalOpen(false);
-        setCurrentTask(null);
     };
 
     return (
         <div className="table-container">
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
-                <button
-                    className="icon-button"
-                    onClick={handleAddNew}
-                    title="Add Task"
-                >
+            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "1rem" }}>
+                <button className="icon-button" onClick={handleAddNew}>
                     <Plus size={20} />
                 </button>
             </div>
 
-            <table className="dashboard-table">
-                <thead>
-                    <tr>
-                        <th>Task</th>
-                        <th>Priority</th>
-                        <th>Status</th>
-                        <th>Due Date</th>
-                        <th>Assigned To</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {tasks.map((task) => (
-                        <tr key={task.id}>
-                            <td>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                    {getStatusIcon(task.status)}
-                                    <span>{task.task}</span>
-                                </div>
-                            </td>
-                            <td>
-                                <span className={getPriorityClass(task.priority)}>
-                                    {task.priority}
-                                </span>
-                            </td>
-                            <td>{task.status}</td>
-                            <td>{task.dueTime}</td>
-                            <td>{task.assignedTo}</td>
-                            <td>
-                                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                    <button className="icon-button" onClick={() => handleEdit(task)} title="Edit">
+            {tasks.length === 0 ? (
+                <div style={{ textAlign: "center", color: "var(--text-secondary)" }}>
+                    No daily work added.
+                </div>
+            ) : (
+                <table className="dashboard-table">
+                    <thead>
+                        <tr>
+                            <th>Task</th>
+                            <th>Priority</th>
+                            <th>Status</th>
+                            <th>Due Date</th>
+                            <th>Assigned To</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {tasks.map(task => (
+                            <tr key={task.id}>
+                                <td>{task.task}</td>
+                                <td>{task.priority}</td>
+                                <td>{task.status}</td>
+                                <td>{task.dueTime || "-"}</td>
+                                <td>{task.assignedTo}</td>
+                                <td>
+                                    <button className="icon-button" onClick={() => handleEdit(task)}>
                                         <Edit2 size={16} />
                                     </button>
-                                    <button className="icon-button" onClick={() => handleDelete(task.id)} title="Delete">
+                                    <button className="icon-button" onClick={() => handleDelete(task.id)}>
                                         <Trash2 size={16} />
                                     </button>
-                                </div>
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            )}
 
             {isModalOpen && (
                 <div className="modal-overlay">
                     <div className="modal-content">
-                        <div className="modal-header">
-                            <h2 className="modal-title">{currentTask ? 'Edit Task' : 'Add Task'}</h2>
-                            <button className="modal-close" onClick={handleCloseModal}>
-                                <X size={24} />
-                            </button>
-                        </div>
                         <form onSubmit={handleSubmit}>
-                            <div className="modal-body">
-                                <div className="form-group">
-                                    <label className="form-label">Task Description</label>
-                                    <input
-                                        type="text"
-                                        name="task"
-                                        className="form-input"
-                                        value={formData.task}
-                                        onChange={handleInputChange}
-                                        required
-                                    />
-                                </div>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                    <div className="form-group">
-                                        <label className="form-label">Priority</label>
-                                        <select name="priority" className="form-input" value={formData.priority} onChange={handleInputChange}>
-                                            <option value="High">High</option>
-                                            <option value="Medium">Medium</option>
-                                            <option value="Low">Low</option>
-                                        </select>
-                                    </div>
-                                    <div className="form-group">
-                                        <label className="form-label">Status</label>
-                                        <select name="status" className="form-input" value={formData.status} onChange={handleInputChange}>
-                                            <option value="Pending">Pending</option>
-                                            <option value="In Progress">In Progress</option>
-                                            <option value="Completed">Completed</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                    <div className="form-group">
-                                        <label className="form-label">Due Date</label>
-                                        <input type="date" name="dueTime" className="form-input" value={formData.dueTime} onChange={handleInputChange} />
-                                    </div>
-                                    <div className="form-group">
-                                        <label className="form-label">Assigned To</label>
-                                        <input type="text" name="assignedTo" className="form-input" value={formData.assignedTo} onChange={handleInputChange} />
-                                    </div>
-                                </div>
-                            </div>
+                            <h2>{currentTask ? "Edit Task" : "Add Task"}</h2>
+
+                            <input
+                                name="task"
+                                placeholder="Task description"
+                                value={formData.task}
+                                onChange={handleInputChange}
+                                required
+                            />
+
+                            <select name="priority" value={formData.priority} onChange={handleInputChange}>
+                                <option>High</option>
+                                <option>Medium</option>
+                                <option>Low</option>
+                            </select>
+
+                            <select name="status" value={formData.status} onChange={handleInputChange}>
+                                <option>Pending</option>
+                                <option>In Progress</option>
+                                <option>Completed</option>
+                            </select>
+
+                            <input
+                                type="date"
+                                name="dueTime"
+                                value={formData.dueTime}
+                                onChange={handleInputChange}
+                            />
+
+                            <input
+                                name="assignedTo"
+                                value={formData.assignedTo}
+                                onChange={handleInputChange}
+                            />
+
                             <div className="modal-footer">
-                                <button type="button" className="btn btn-secondary" onClick={handleCloseModal}>Cancel</button>
-                                <button type="submit" className="btn btn-primary">{currentTask ? 'Save Changes' : 'Add Task'}</button>
+                                <button type="button" onClick={() => setIsModalOpen(false)}>
+                                    Cancel
+                                </button>
+                                <button type="submit">
+                                    Save
+                                </button>
                             </div>
                         </form>
                     </div>
@@ -221,6 +240,7 @@ function DailyWorkTab() {
         </div>
     );
 }
+
 
 function AssignedWorkTab() {
     const [assignedTasks, setAssignedTasks] = useState([]);
@@ -234,7 +254,7 @@ function AssignedWorkTab() {
         log('info', "Fetching assigned tasks...");
 
         try {
-            const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/assigned-tasks`, {
+            const res = await fetch(`${API_BASE_URL}/api/assigned-tasks`, {
                 headers: {
                     Authorization: `Bearer ${localStorage.getItem("token")}`
                 }
@@ -248,12 +268,12 @@ function AssignedWorkTab() {
 
             const response = await res.json();
             log('debug', "Debug: assigned-tasks API response:", response);
-            
+
             // Check if the response contains the data property and it is an array
             if (response.success && Array.isArray(response.data)) {
                 setAssignedTasks(response.data);
                 log('info', "Assigned tasks set successfully:", response.data);
-                
+
             } else {
                 log('warning', "API response is not an array:", response);
                 setAssignedTasks([]); // Fallback to an empty array
@@ -314,20 +334,55 @@ function AssignedWorkTab() {
         setIsModalOpen(true);
     };
 
-    const handleDelete = (id) => {
-        if (window.confirm('Are you sure you want to delete this?')) {
-            setAssignedTasks(assignedTasks.filter(task => task.id !== id));
+    const handleDelete = async (id) => {
+        if (!window.confirm('Are you sure you want to delete this?')) return;
+
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/assigned-tasks/${id}`, {
+                method: "DELETE",
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem("token")}`
+                }
+            });
+
+            if (!res.ok) throw new Error("Delete failed");
+
+            setAssignedTasks(prev => prev.filter(task => task.id !== id));
+            log("info", "Task deleted successfully");
+        } catch (err) {
+            log("error", "Delete error:", err);
+            alert("Failed to delete task");
         }
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        if (currentTask) {
-            setAssignedTasks(assignedTasks.map(t => t.id === currentTask.id ? { ...formData, id: currentTask.id } : t));
-        } else {
-            setAssignedTasks([...assignedTasks, { ...formData, id: Date.now() }]);
+        try {
+            const url = currentTask
+                ? `${API_BASE_URL}/api/assigned-tasks/${currentTask.id}`
+                : `${API_BASE_URL}/api/assigned-tasks`;
+
+            const method = currentTask ? "PUT" : "POST";
+            log('debug', `Sending ${method} request to ${url}`);
+
+            const res = await fetch(url, {
+                method: method,
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${localStorage.getItem("token")}`
+                },
+                body: JSON.stringify(formData)
+            });
+
+            if (!res.ok) throw new Error("Save failed");
+
+            await loadAssignedTasks();
+            handleCloseModal();
+            log("info", "Assigned task saved successfully");
+        } catch (err) {
+            log("error", "Submit error:", err);
+            alert("Failed to save assigned task");
         }
-        handleCloseModal();
     };
 
     const handleAddNew = () => {
@@ -359,55 +414,72 @@ function AssignedWorkTab() {
         );
     };
 
+
     const handleEditRow = (task) => {
         const statusOptions = RESPONSE_STATUS_MAP[task.response] || [task.status];
 
         setCurrentTask(task);
 
         setFormData({
-            ...task,
-            response: task.response,          // keep existing
-            status: task.status,              // keep existing
-            statusOptions,                    // derive from response
+            id: task.id,
+            status: task.status || "Pending",
+            remark: task.remark || "",
+            response: task.response || "Waiting",
+            statusOptions
         });
     };
 
+
     const handleSaveRow = async (taskId) => {
-        const updatedTask = {
-            ...currentTask,
+        const payload = {
             status: formData.status,
             remark: formData.remark,
             response: formData.response,
         };
 
         try {
-            const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/assigned-tasks/${taskId}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${localStorage.getItem("token")}`,
-                },
-                body: JSON.stringify(updatedTask),
-            });
+            log('debug', `Sending PUT request to ${API_BASE_URL}/api/assigned-tasks/${taskId}`);
+
+            const res = await fetch(
+                `${API_BASE_URL}/api/assigned-tasks/${taskId}`,
+                {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${localStorage.getItem("token")}`,
+                    },
+                    body: JSON.stringify(payload),
+                }
+            );
 
             if (!res.ok) {
-                throw new Error(`Error: ${res.status} ${res.statusText}`);
+                throw new Error(`Update failed ${res.status}`);
             }
 
-            const updatedTasks = assignedTasks.map((task) =>
-                task.id === taskId ? updatedTask : task
+            const updated = await res.json();
+
+            setAssignedTasks(prev =>
+                prev.map(task =>
+                    task.id === taskId
+                        ? { ...task, ...payload }
+                        : task
+                )
             );
-            setAssignedTasks(updatedTasks);
+
             setCurrentTask(null);
-            log('info', "Task updated successfully:", updatedTask);
+            log("info", "Assigned task updated successfully");
+
         } catch (err) {
-            log('error', "Error updating task:", err);
+            log("error", "Update error:", err);
+            alert("Failed to update task");
         }
     };
+
 
     const handleCancelEdit = () => {
         setCurrentTask(null);
     };
+
 
     const handleResponseChange = (response) => {
         const statusOptions = RESPONSE_STATUS_MAP[response] || [];
@@ -416,9 +488,10 @@ function AssignedWorkTab() {
             ...prev,
             response,
             statusOptions,
-            status: statusOptions[0] ?? prev.status,
+            status: statusOptions[0] || prev.status
         }));
     };
+
 
     const handleEditClick = (task) => {
         const statusOptions = RESPONSE_STATUS_MAP[task.response] || [task.status];

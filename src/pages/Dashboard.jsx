@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { Clock, Download, UserPlus, UserMinus, Briefcase, ShieldCheck, Database, UploadCloud, Receipt, CalendarX, Send, FileText } from 'lucide-react';
+import { API_BASE_URL } from '../config';
+import { Clock, Download, UserPlus, UserMinus, Briefcase, ShieldCheck, Database, UploadCloud, Receipt, CalendarX, Send, FileText, AlertTriangle } from 'lucide-react';
 import { log } from '../utils/logger'; // Adjust the import based on your project structure
 
 function PasswordModal({ isOpen, onClose, customerName, onSubmit }) {
@@ -56,6 +57,9 @@ function Dashboard() {
     const navigate = useNavigate();
     const [modalOpen, setModalOpen] = useState(false);
     const [selectedCustomer, setSelectedCustomer] = useState('');
+    const [selectedLogId, setSelectedLogId] = useState(null);
+    const [activeMonth, setActiveMonth] = useState('October'); // Fallback
+    const [activeYear, setActiveYear] = useState(2025); // Fallback
 
 
     const getCurrentTime = () => {
@@ -84,12 +88,9 @@ function Dashboard() {
     const fetchDashboardData = async () => {
         try {
             const token = localStorage.getItem('token');
-            if (!token) {
-                // navigate('/'); // Optional: redirect to login if no token
-                return;
-            }
+            if (!token) return [];
 
-            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/dashboard/processing-logs`, {
+            const response = await fetch(`${API_BASE_URL}/api/dashboard/processing-logs`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -97,64 +98,224 @@ function Dashboard() {
 
             if (response.ok) {
                 const result = await response.json();
+
+                if (result.meta) {
+                    setActiveMonth(result.meta.active_month || 'October');
+                    setActiveYear(result.meta.active_year || 2025);
+                }
+
                 if (result.success) {
                     const mappedData = result.data.map(item => ({
                         id: item.log_id,
+                        custId: item.custid,
                         customerName: item.customer_name,
                         mailReceived: item.mail_received,
-                        status: item.status,
-                        remark: item.remark,
-                        hasPassword: item.status === "On Hold",
-                        pfDownloadEnabled: item.status === "Completed",
-                        backlogEmployeeEnabled: true,
-                        backlogSalaryEnabled: true,
+                        month: item.month,
+                        year: item.year,
+                        status: item.status || 'Pending',
+                        remark: item.remark || '',
+                        hasPassword: (item.status || '').toLowerCase().includes("on_hold") || (item.status || '').toLowerCase().includes("on hold"),
+                        pfDownloadEnabled: (item.status || '').toLowerCase() === "completed",
+                        backlogEmployeeEnabled: item.backlog_employee_enabled,
+                        backlogSalaryEnabled: item.backlog_salary_enabled,
                     }));
                     setDashboardData(mappedData);
+                    return mappedData;
                 }
             } else {
                 console.error('Failed to fetch dashboard data:', response.status);
-                if (response.status === 401) {
-                    navigate('/');
-                }
+                if (response.status === 401) navigate('/');
             }
         } catch (error) {
             console.error('Error fetching dashboard data:', error);
         } finally {
             setLoading(false);
         }
+        return [];
+    };
+
+    const refreshAndReturnDashboard = async () => {
+        return await fetchDashboardData();
     };
 
     useEffect(() => {
+        // Initial fetch
         fetchDashboardData();
+        fetchMailReadTime();
+        fetchDailyStatus();
+        fetchAssignedTaskStatus();
+
+        // Auto-refresh every 2 seconds for real-time updates
+        const intervalId = setInterval(() => {
+            fetchDashboardData();
+            fetchMailReadTime();
+            fetchDailyStatus();
+            fetchAssignedTaskStatus();
+        }, 2000); // 2 seconds
+
+        // Cleanup on unmount
+        return () => clearInterval(intervalId);
     }, []);
 
-    const handleRemarkClick = (customer) => {
-        if (customer.hasPassword) {
-            setSelectedCustomer(customer.customerName);
+
+    const handleRemarkClick = (row) => {
+        if (row.hasPassword) {
+            setSelectedCustomer(row.customerName);
+            setSelectedLogId(row.id);
             setModalOpen(true);
         }
     };
 
-    const handlePasswordSubmit = (password) => {
+
+    const handlePasswordSubmit = async (password) => {
+        // ✅ SAME AS OLD (logger untouched)
         log('info', `Password submitted for ${selectedCustomer}:`, password);
-        alert(`Password "${password}" submitted for ${selectedCustomer}`);
-        setModalOpen(false);
+
+        try {
+            const token = localStorage.getItem('token');
+
+            const response = await fetch(`${API_BASE_URL}/api/dashboard/submit-password`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    log_id: selectedLogId,
+                    password
+                })
+            });
+
+            if (!response.ok) {
+                const err = await response.json();
+                alert(`Failed to submit password: ${err?.detail || 'Unknown error'}`);
+                return;
+            }
+
+            // ✅ SAME UX AS OLD
+            alert(`Password "${password}" submitted for ${selectedCustomer}`);
+            setModalOpen(false);
+
+            // 🔁 refresh dashboard (important)
+            const refreshed = await refreshAndReturnDashboard();
+
+            // 🔥 AUTO-TRIGGER OLD FEATURES
+            const row = refreshed.find(r => r.id === selectedLogId);
+            if (!row) return;
+
+            // PF Report
+            if (row.pfDownloadEnabled) {
+                handleDownload(row);
+            }
+
+            // Backlog Employee
+            if (row.backlogEmployeeEnabled) {
+                handleBacklogEmployee(row);
+            }
+
+            // Backlog Salary
+            if (row.backlogSalaryEnabled) {
+                handleBacklogSalary(row);
+            }
+
+        } catch (error) {
+            console.error('Error submitting password:', error);
+            alert('Error connecting to server.');
+        }
     };
 
-    const handleDownload = (customerName) => {
-        log('info', `Downloading PF Report for ${customerName}`);
-        alert(`Downloading PF Report for ${customerName}`);
+    const [sendingRowId, setSendingRowId] = useState(null);
+
+
+    const handleDownload = async (row) => {
+        // ✅ SAME AS OLD
+        log('info', `Downloading PF Report for ${row.customerName}`);
+        alert(`Downloading PF Report for ${row.customerName}`);
+
+        if (sendingRowId) return;
+        setSendingRowId(row.id);
+
+        try {
+            const token = localStorage.getItem('token');
+
+            const response = await fetch(
+                `${API_BASE_URL}/api/dashboard/send-pf-report-email`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        custid: row.custId,
+                        month: row.month,
+                        year: row.year
+                    })
+                }
+            );
+
+            if (!response.ok) {
+                const error = await response.json();
+                alert(error.detail || "Failed to send PF report");
+                return;
+            }
+
+            const result = await response.json();
+            alert(result.message || "PF Report sent successfully");
+
+        } catch (e) {
+            console.error(e);
+            alert("Error sending PF report");
+        } finally {
+            setSendingRowId(null);
+        }
     };
 
-    const handleBacklogEmployee = (customerName) => {
-        log('info', `Opening Backlog Employee/New Joinee for ${customerName}`);
-        alert(`Backlog Employee/New Joinee for ${customerName}`);
+
+    const handleBacklogEmployee = (row) => {
+        // ✅ SAME AS OLD
+        log('info', `Opening Backlog Employee/New Joinee for ${row.customerName}`);
+        alert(`Backlog Employee/New Joinee for ${row.customerName}`);
+
+        handleDownloadBacklog(row.id, 'employee');
+    };
+    const handleBacklogSalary = (row) => {
+        // ✅ SAME AS OLD
+        log('info', `Opening Backlog Salary/Exit Employee for ${row.customerName}`);
+        alert(`Backlog Salary/Exit Employee for ${row.customerName}`);
+
+        handleDownloadBacklog(row.id, 'salary');
+    };
+    const handleDownloadBacklog = async (logId, type) => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(
+                `${API_BASE_URL}/api/dashboard/download-backlog?log_id=${logId}&type=${type}`,
+                {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                }
+            );
+
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `backlog_${type}_${logId}.xlsx`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+            } else {
+                alert("No backlog file available");
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Error downloading backlog file");
+        }
     };
 
-    const handleBacklogSalary = (customerName) => {
-        log('info', `Opening Backlog Salary/Exit Employee for ${customerName}`);
-        alert(`Backlog Salary/Exit Employee for ${customerName}`);
-    };
+
+
 
     const [dailyStatus, setDailyStatus] = useState({
         completed: 0,
@@ -162,16 +323,14 @@ function Dashboard() {
         failed: 0
     });
 
-    useEffect(() => {
-        fetchDailyStatus();
-    }, []);
+
 
     const fetchDailyStatus = async () => {
         try {
             const token = localStorage.getItem("token");
 
             const res = await fetch(
-                `${import.meta.env.VITE_API_BASE_URL}/api/dashboarddailystatus_card/status`,
+                `${API_BASE_URL}/api/dashboarddailystatus_card/status`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`
@@ -193,19 +352,18 @@ function Dashboard() {
         assigned: 0,
         accepted: 0,
         in_progress: 0,
-        completed: 0
+        completed: 0,
+        pending: 0
     });
 
-    useEffect(() => {
-        fetchAssignedTaskStatus();
-    }, []);
+
 
     const fetchAssignedTaskStatus = async () => {
         try {
             const token = localStorage.getItem("token");
 
             const res = await fetch(
-                `${import.meta.env.VITE_API_BASE_URL}/api/dashboardassignstatus_card/status`,
+                `${API_BASE_URL}/api/dashboardassignstatus_card/status`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`
@@ -228,9 +386,7 @@ function Dashboard() {
         next_read: null
     });
 
-    useEffect(() => {
-        fetchMailReadTime();
-    }, []);
+
 
 
     const fetchMailReadTime = async () => {
@@ -238,7 +394,7 @@ function Dashboard() {
             const token = localStorage.getItem("token");
 
             const res = await fetch(
-                `${import.meta.env.VITE_API_BASE_URL}/api/dashboard_mailread_time/mail-read-time`,
+                `${API_BASE_URL}/api/dashboard_mailread_time/mail-read-time`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`
@@ -329,6 +485,10 @@ function Dashboard() {
                             <span style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}> {assignedTask.assigned}</span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ color: 'var(--text-secondary)' }}>Pending</span>
+                            <span style={{ fontWeight: 'bold', color: 'var(--warning-color)' }}> {assignedTask.pending}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span style={{ color: 'var(--text-secondary)' }}> Accepted</span>
                             <span style={{ fontWeight: 'bold', color: 'var(--info-color)' }}> {assignedTask.accepted}</span>
                         </div>
@@ -346,7 +506,9 @@ function Dashboard() {
 
             </div>
 
-            <h2 className="page-title" style={{ fontSize: '1.2rem', paddingLeft: '0.2rem', marginBottom: '1.5rem', marginTop: '3rem' }}>Compliance for November 2025</h2>
+            <h2 className="page-title" style={{ fontSize: '1.2rem', paddingLeft: '0.2rem', marginBottom: '1.5rem', marginTop: '3rem' }}>
+                Wage Month: {activeMonth} {activeYear}
+            </h2>
 
             {/* Dashboard Table */}
             <div className="table-container">
@@ -363,11 +525,25 @@ function Dashboard() {
                         </tr>
                     </thead>
                     <tbody>
-                        {dashboardData.map((row) => (
-                            <tr key={row.id}>
+                        {dashboardData.map((row, index) => (
+                            <tr key={row.id || index}>
                                 <td>{row.customerName}</td>
                                 <td>{row.mailReceived}</td>
-                                <td>{row.status}</td>
+                                <td>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        {(row.status || '').toLowerCase().replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                        {row.hasPassword && ":"}
+                                        {row.hasPassword && (
+                                            <AlertTriangle
+                                                size={18}
+                                                color="#FFCC00"
+                                                style={{ cursor: 'pointer' }}
+                                                onClick={() => handleRemarkClick(row)}
+                                                title="Click to enter password"
+                                            />
+                                        )}
+                                    </div>
+                                </td>
                                 <td>
                                     {row.hasPassword ? (
                                         <span
@@ -383,18 +559,20 @@ function Dashboard() {
                                 <td>
                                     <button
                                         className="icon-button"
-                                        disabled={!row.pfDownloadEnabled}
-                                        onClick={() => handleDownload(row.customerName)}
-                                        title="Download PF Report"
+                                        disabled={!row.pfDownloadEnabled || sendingRowId !== null}
+                                        onClick={() => handleDownload(row)}
+                                        title={sendingRowId === row.id ? "Sending email..." : "Send PF Report via Email"}
+                                        style={{ cursor: sendingRowId === row.id ? 'wait' : (!row.pfDownloadEnabled ? 'not-allowed' : 'pointer') }}
                                     >
-                                        <Download size={18} />
+                                        <Send size={18} color={sendingRowId === row.id ? "#f59e0b" : "currentColor"} />
                                     </button>
                                 </td>
                                 <td>
                                     <button
                                         className="icon-button"
                                         disabled={!row.backlogEmployeeEnabled}
-                                        onClick={() => handleBacklogEmployee(row.customerName)}
+                                        // onClick={() => handleBacklogEmployee(row.id)}
+                                        onClick={() => handleBacklogEmployee(row)}
                                         title="Backlog Employee / New Joinee"
                                     >
                                         <UserPlus size={18} />
@@ -404,7 +582,8 @@ function Dashboard() {
                                     <button
                                         className="icon-button"
                                         disabled={!row.backlogSalaryEnabled}
-                                        onClick={() => handleBacklogSalary(row.customerName)}
+                                        // onClick={() => handleBacklogSalary(row.id)}
+                                        onClick={() => handleBacklogSalary(row)}
                                         title="Backlog Salary / Exit Employee"
                                     >
                                         <UserMinus size={18} />
