@@ -124,12 +124,9 @@ function DailyWorkTab() {
 
             const result = await res.json();
 
-            if (currentTask) {
-                setTasks(prev =>
-                    prev.map(t => t.id === currentTask.id ? result.data : t)
-                );
-            } else {
-                setTasks(prev => [...prev, result.data]);
+            if (result.success) {
+                // Reload tasks from server to ensure correct data (especially spguser_name)
+                await loadDailyTasks();
             }
 
             setIsModalOpen(false);

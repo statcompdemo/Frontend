@@ -53,14 +53,146 @@ function PasswordModal({ isOpen, onClose, customerName, onSubmit }) {
     );
 }
 
+function ChallanUploadModal({ isOpen, onClose, customerName, onSubmit }) {
+    const [challanFile, setChallanFile] = useState(null);
+    const [ecrFile, setEcrFile] = useState(null);
+
+    if (!isOpen) return null;
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        if (!challanFile) return alert("Please select challan file");
+        onSubmit(challanFile, ecrFile);
+        setChallanFile(null);
+        setEcrFile(null);
+    };
+
+    return (
+        <div className="modal-overlay" onClick={onClose}>
+            <div className="modal-content" style={{ maxWidth: '600px', padding: '2.5rem', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+                <div style={{ marginBottom: '2rem' }}>
+                    <h2 style={{ color: '#667eea', fontSize: '1.8rem', fontWeight: 'bold', marginBottom: '1.5rem' }}>
+                        {customerName}
+                    </h2>
+                    <p style={{ color: '#00d4aa', fontSize: '1.1rem', fontWeight: '500', lineHeight: '1.5', margin: '0 auto', maxWidth: '90%' }}>
+                        Please Upload the pf-report (.csv file) in the PF Portal, once completed successfully upload the generated Chalan and ECR file by clicking the &lt;&lt;Upload Generated Files&gt;&gt; button.
+                    </p>
+                </div>
+
+                <div className="modal-body" style={{ textAlign: 'left', background: 'rgba(255,255,255,0.05)', padding: '1.5rem', borderRadius: 'var(--radius-md)', marginBottom: '2rem' }}>
+                    <div className="form-group">
+                        <label className="form-label" style={{ color: 'var(--text-secondary)' }}>Challan File (Required)</label>
+                        <input type="file" className="form-input" onChange={(e) => setChallanFile(e.target.files[0])} />
+                    </div>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label className="form-label" style={{ color: 'var(--text-secondary)' }}>ECR File (Required)</label>
+                        <input type="file" className="form-input" onChange={(e) => setEcrFile(e.target.files[0])} />
+                    </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '1.5rem', justifyContent: 'center' }}>
+                    <button className="btn btn-primary" onClick={handleSubmit} disabled={!challanFile} style={{ minWidth: '150px', borderRadius: '30px' }}>Upload Generated Files</button>
+                    <button className="btn btn-secondary" onClick={onClose} style={{ minWidth: '150px', borderRadius: '30px' }}>Cancel</button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function PaymentReceiptModal({ isOpen, onClose, customerName, onSubmit }) {
+    const [receiptFile, setReceiptFile] = useState(null);
+
+    if (!isOpen) return null;
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        if (!receiptFile) return alert("Please select payment receipt");
+        onSubmit(receiptFile);
+        setReceiptFile(null);
+    };
+
+    return (
+        <div className="modal-overlay" onClick={onClose}>
+            <div className="modal-content" style={{ maxWidth: '600px', padding: '2.5rem', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+                <div style={{ marginBottom: '2rem' }}>
+                    <h2 style={{ color: '#667eea', fontSize: '1.8rem', fontWeight: 'bold', marginBottom: '1.5rem' }}>
+                        {customerName}
+                    </h2>
+                    <p style={{ color: '#00d4aa', fontSize: '1.1rem', fontWeight: '500', lineHeight: '1.5', margin: '0 auto', maxWidth: '90%' }}>
+                        Please Download the PF Chalan receipt from the PF Portal, once downloaded successfully upload the receipt by clicking the &lt;&lt;Upload Chalan Receipt&gt;&gt; button.
+                    </p>
+                </div>
+
+                <div className="modal-body" style={{ textAlign: 'left', background: 'rgba(255,255,255,0.05)', padding: '1.5rem', borderRadius: 'var(--radius-md)', marginBottom: '2rem' }}>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label className="form-label" style={{ color: 'var(--text-secondary)' }}>Payment Receipt (Required)</label>
+                        <input type="file" className="form-input" onChange={(e) => setReceiptFile(e.target.files[0])} />
+                    </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '1.5rem', justifyContent: 'center' }}>
+                    <button className="btn btn-primary" onClick={handleSubmit} disabled={!receiptFile} style={{ minWidth: '150px', borderRadius: '30px' }}>Upload Chalan Receipt</button>
+                    <button className="btn btn-secondary" onClick={onClose} style={{ minWidth: '150px', borderRadius: '30px' }}>Cancel</button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 function Dashboard() {
     const navigate = useNavigate();
     const [modalOpen, setModalOpen] = useState(false);
+    const [challanModalOpen, setChallanModalOpen] = useState(false);
+    const [paymentModalOpen, setPaymentModalOpen] = useState(false);
     const [selectedCustomer, setSelectedCustomer] = useState('');
     const [selectedLogId, setSelectedLogId] = useState(null);
     const [activeMonth, setActiveMonth] = useState('October'); // Fallback
     const [activeYear, setActiveYear] = useState(2025); // Fallback
 
+
+    const getStatusClass = (status, remark) => {
+        const s = (status || '').toLowerCase().trim();
+        const r = (remark || '').toLowerCase().trim();
+        let baseClass = 'status-badge';
+
+        if (s === 'completed' || r.includes('pf compliance complete')) {
+            return `${baseClass} badge-green`;
+        }
+
+        // Pending logic
+        if (r.includes('salary data not received') ||
+            r.includes('day 7') ||
+            r.includes('day 10') ||
+            r.includes('day 14')) {
+            return `${baseClass} badge-red`;
+        }
+
+        if (r.includes('day 16')) {
+            return `${baseClass} badge-red status-blink`;
+        }
+
+        // Waiting / On Hold logic
+        if (r.includes('salary process successfully') ||
+            r.includes('password not found') ||
+            r.includes('ecr and challan sent to client') // Kept existing logic for ease, assuming it maps here or isn't in spec
+        ) {
+            return `${baseClass} badge-yellow`;
+        }
+
+        if (r.includes('waiting for challan generation') ||
+            r.includes('header mismatch file') ||
+            r.includes('pf report reject by client') ||
+            r.includes('waiting for payment receipt')) {
+            return `${baseClass} badge-orange`;
+        }
+
+        // Fallbacks based on category
+        if (s === 'pending') return `${baseClass} badge-red`;
+        if (s === 'waiting') return `${baseClass} badge-yellow`;
+        if (s === 'on hold') return `${baseClass} badge-orange`;
+
+        return baseClass;
+    };
 
     const getCurrentTime = () => {
         return new Date().toLocaleTimeString('en-US', {
@@ -83,7 +215,29 @@ function Dashboard() {
 
 
     const [dashboardData, setDashboardData] = useState([]);
+    const [stats, setStats] = useState({
+        total_assigned: 13,
+        salary: { uploaded: 7, pending: 6 },
+        challan: { uploaded: 0, pending: 0 },
+        payment: { completed: 0, pending: 0 },
+        pf_report: { sent: 0, pending: 0 }
+    });
     const [loading, setLoading] = useState(true);
+
+    const fetchWorkflowStats = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${API_BASE_URL}/api/workflow/stats`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (response.ok) {
+                const result = await response.json();
+                if (result.success) setStats(result.stats);
+            }
+        } catch (error) {
+            console.error('Error fetching stats:', error);
+        }
+    };
 
     const fetchDashboardData = async () => {
         try {
@@ -114,8 +268,12 @@ function Dashboard() {
                         year: item.year,
                         status: item.status || 'Pending',
                         remark: item.remark || '',
-                        hasPassword: (item.status || '').toLowerCase().includes("on_hold") || (item.status || '').toLowerCase().includes("on hold"),
-                        pfDownloadEnabled: (item.status || '').toLowerCase() === "completed",
+                        workflowStatus: item.workflow_status,
+                        hasPassword: item.workflow_status === "on_hold_password",
+                        isWaitingChallan: item.workflow_status === "challan_pending" || item.workflow_status === "pf_approved",
+                        isWaitingPayment: item.workflow_status === "payment_pending" || (item.remark || '').toLowerCase().includes("waiting for payment receipt"),
+                        pfDownloadEnabled: item.status.toLowerCase() === "completed" ||
+                            ["pf_sent_waiting", "pf_approved", "challan_pending", "payment_pending", "pf_rejected"].includes(item.workflow_status),
                         backlogEmployeeEnabled: item.backlog_employee_enabled,
                         backlogSalaryEnabled: item.backlog_salary_enabled,
                     }));
@@ -151,6 +309,7 @@ function Dashboard() {
             fetchMailReadTime();
             fetchDailyStatus();
             fetchAssignedTaskStatus();
+            fetchWorkflowStats();
         }, 2000); // 2 seconds
 
         // Cleanup on unmount
@@ -163,6 +322,69 @@ function Dashboard() {
             setSelectedCustomer(row.customerName);
             setSelectedLogId(row.id);
             setModalOpen(true);
+        } else if (row.isWaitingChallan) {
+            setSelectedCustomer(row.customerName);
+            setSelectedLogId(row.id);
+            setChallanModalOpen(true);
+        } else if (row.isWaitingPayment) {
+            setSelectedCustomer(row.customerName);
+            setSelectedLogId(row.id);
+            setPaymentModalOpen(true);
+        }
+    };
+
+    const handleChallanSubmit = async (challanFile, ecrFile) => {
+        try {
+            const token = localStorage.getItem('token');
+            const formData = new FormData();
+            formData.append('log_id', selectedLogId);
+            formData.append('challan_file', challanFile);
+            if (ecrFile) formData.append('ecr_file', ecrFile);
+
+            const response = await fetch(`${API_BASE_URL}/api/workflow/upload-challan`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` },
+                body: formData
+            });
+
+            if (response.ok) {
+                alert("Challan uploaded successfully!");
+                setChallanModalOpen(false);
+                fetchDashboardData();
+            } else {
+                const err = await response.json();
+                alert(`Upload failed: ${err.detail}`);
+            }
+        } catch (error) {
+            console.error(error);
+            alert("Error uploading challan");
+        }
+    };
+
+    const handlePaymentSubmit = async (receiptFile) => {
+        try {
+            const token = localStorage.getItem('token');
+            const formData = new FormData();
+            formData.append('log_id', selectedLogId);
+            formData.append('payment_receipt', receiptFile);
+
+            const response = await fetch(`${API_BASE_URL}/api/workflow/upload-payment-receipt`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` },
+                body: formData
+            });
+
+            if (response.ok) {
+                alert("Payment receipt uploaded! PF Compliance Complete.");
+                setPaymentModalOpen(false);
+                fetchDashboardData();
+            } else {
+                const err = await response.json();
+                alert(`Upload failed: ${err.detail}`);
+            }
+        } catch (error) {
+            console.error(error);
+            alert("Error uploading payment receipt");
         }
     };
 
@@ -318,6 +540,7 @@ function Dashboard() {
 
 
     const [dailyStatus, setDailyStatus] = useState({
+        total: 0,
         completed: 0,
         processing: 0,
         failed: 0
@@ -456,7 +679,7 @@ function Dashboard() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0', width: '100%', fontSize: '0.65rem', padding: '0 0.1rem' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span style={{ color: 'var(--text-secondary)' }}>My Tasks</span>
-                            <span style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>10</span>
+                            <span style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>{dailyStatus.total}</span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span style={{ color: 'var(--text-secondary)' }}>Completed</span>
@@ -531,7 +754,13 @@ function Dashboard() {
                                 <td>{row.mailReceived}</td>
                                 <td>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        {(row.status || '').toLowerCase().replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                        <span
+                                            className={getStatusClass(row.status, row.remark)}
+                                            onClick={() => (row.hasPassword || row.isWaitingChallan || row.isWaitingPayment) && handleRemarkClick(row)}
+                                            style={{ cursor: (row.hasPassword || row.isWaitingChallan || row.isWaitingPayment) ? 'pointer' : 'default' }}
+                                        >
+                                            {(row.status || '').toLowerCase().replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                        </span>
                                         {row.hasPassword && ":"}
                                         {row.hasPassword && (
                                             <AlertTriangle
@@ -545,10 +774,11 @@ function Dashboard() {
                                     </div>
                                 </td>
                                 <td>
-                                    {row.hasPassword ? (
+                                    {(row.hasPassword || row.isWaitingChallan || row.isWaitingPayment) ? (
                                         <span
                                             className="remark-text"
                                             onClick={() => handleRemarkClick(row)}
+                                            style={{ cursor: 'pointer', color: 'var(--info-color)', textDecoration: 'underline' }}
                                         >
                                             {row.remark}
                                         </span>
@@ -571,7 +801,6 @@ function Dashboard() {
                                     <button
                                         className="icon-button"
                                         disabled={!row.backlogEmployeeEnabled}
-                                        // onClick={() => handleBacklogEmployee(row.id)}
                                         onClick={() => handleBacklogEmployee(row)}
                                         title="Backlog Employee / New Joinee"
                                     >
@@ -582,7 +811,6 @@ function Dashboard() {
                                     <button
                                         className="icon-button"
                                         disabled={!row.backlogSalaryEnabled}
-                                        // onClick={() => handleBacklogSalary(row.id)}
                                         onClick={() => handleBacklogSalary(row)}
                                         title="Backlog Salary / Exit Employee"
                                     >
@@ -602,38 +830,35 @@ function Dashboard() {
                     {/* 1. Total Company Assign */}
                     <div
                         className="compliance-circle"
-                        onClick={() => alert('Total Company Assign Clicked')}
                         style={{ background: 'linear-gradient(135deg, #FF9966 0%, #FF5E62 100%)' }}
                     >
                         <div className="compliance-circle-content">
                             <div className="compliance-label">Total Company<br />Assign</div>
-                            <div className="compliance-value">13</div>
+                            <div className="compliance-value">{stats.total_assigned}</div>
                         </div>
                     </div>
 
                     {/* 2. Obligations */}
                     <div
                         className="compliance-circle"
-                        onClick={() => alert('Obligations Clicked')}
                         style={{ background: 'linear-gradient(135deg, #56CCF2 0%, #2F80ED 100%)' }}
                     >
                         <div className="compliance-circle-content">
                             <div className="compliance-label">Obligations</div>
-                            <div className="compliance-value">10</div>
+                            <div className="compliance-value">{stats.total_assigned}</div>
                         </div>
                     </div>
 
                     {/* 3. Data Recorded */}
                     <div
                         className="compliance-circle"
-                        onClick={() => alert('Data Recorded Clicked')}
                         style={{ background: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)' }}
                     >
                         <div className="compliance-circle-content">
                             <div className="compliance-label">Data Recorded</div>
                             <div className="compliance-subtext">
-                                <span>Salary Uploaded 7</span>
-                                <span>Not Uploaded 6</span>
+                                <span>Salary Uploaded {stats.salary.uploaded}</span>
+                                <span>Not Uploaded {stats.salary.pending}</span>
                             </div>
                         </div>
                     </div>
@@ -641,14 +866,13 @@ function Dashboard() {
                     {/* 4. Challan Uploaded */}
                     <div
                         className="compliance-circle"
-                        onClick={() => alert('Challan Uploaded Clicked')}
                         style={{ background: 'linear-gradient(135deg, #F2994A 0%, #F2C94C 100%)' }}
                     >
                         <div className="compliance-circle-content">
                             <div className="compliance-label">Challan</div>
                             <div className="compliance-subtext">
-                                <span>Uploaded 15</span>
-                                <span>Pending 5</span>
+                                <span>Uploaded {stats.challan.uploaded}</span>
+                                <span>Pending {stats.challan.pending}</span>
                             </div>
                         </div>
                     </div>
@@ -656,14 +880,13 @@ function Dashboard() {
                     {/* 5. Paid Receipt */}
                     <div
                         className="compliance-circle"
-                        onClick={() => alert('Paid Receipt Clicked')}
                         style={{ background: 'linear-gradient(135deg, #8E2DE2 0%, #4A00E0 100%)' }}
                     >
                         <div className="compliance-circle-content">
                             <div className="compliance-label">Paid Receipt</div>
                             <div className="compliance-subtext">
-                                <span>Completed 5</span>
-                                <span>Pending 5</span>
+                                <span>Completed {stats.payment.completed}</span>
+                                <span>Pending {stats.payment.pending}</span>
                             </div>
                         </div>
                     </div>
@@ -671,7 +894,6 @@ function Dashboard() {
                     {/* 6. Exit dates */}
                     <div
                         className="compliance-circle"
-                        onClick={() => alert('Exit Dates Clicked')}
                         style={{ background: 'linear-gradient(135deg, #30cfd0 0%, #330867 100%)' }}
                     >
                         <div className="compliance-circle-content">
@@ -683,14 +905,13 @@ function Dashboard() {
                     {/* 7. Sents Registers */}
                     <div
                         className="compliance-circle"
-                        onClick={() => alert('Sents Registers Clicked')}
                         style={{ background: 'linear-gradient(135deg, #ec008c 0%, #fc6767 100%)' }}
                     >
                         <div className="compliance-circle-content">
                             <div className="compliance-label">Sents Registers</div>
                             <div className="compliance-subtext">
-                                <span>Sent 7</span>
-                                <span>Pending 6</span>
+                                <span>Sent {stats.pf_report.sent}</span>
+                                <span>Pending {stats.pf_report.pending}</span>
                             </div>
                         </div>
                     </div>
@@ -698,7 +919,6 @@ function Dashboard() {
                     {/* 8. PT Returns */}
                     <div
                         className="compliance-circle"
-                        onClick={() => alert('PT Returns Clicked')}
                         style={{ background: 'linear-gradient(135deg, #DA4453 0%, #89216B 100%)' }}
                     >
                         <div className="compliance-circle-content">
@@ -716,7 +936,21 @@ function Dashboard() {
                 customerName={selectedCustomer}
                 onSubmit={handlePasswordSubmit}
             />
-        </div>
+
+            <ChallanUploadModal
+                isOpen={challanModalOpen}
+                onClose={() => setChallanModalOpen(false)}
+                customerName={selectedCustomer}
+                onSubmit={handleChallanSubmit}
+            />
+
+            <PaymentReceiptModal
+                isOpen={paymentModalOpen}
+                onClose={() => setPaymentModalOpen(false)}
+                customerName={selectedCustomer}
+                onSubmit={handlePaymentSubmit}
+            />
+        </div >
     );
 }
 

@@ -37,6 +37,59 @@
   --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* Status Badges (Pill style) */
+.status-badge {
+  display: inline-block;
+  padding: 6px 18px;
+  border-radius: 30px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #ffffff !important;
+  text-align: center;
+  min-width: 100px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  text-transform: capitalize;
+}
+
+.badge-red {
+  background: linear-gradient(135deg, #ff416c, #ff4b2b);
+}
+
+.badge-yellow {
+  background: linear-gradient(135deg, #fbc02d, #f9a825);
+  /* Darker "Warning" Yellow/Gold */
+}
+
+.badge-orange {
+  background: linear-gradient(135deg, #FF5F1F, #FF5F1F);
+  /* Deep/Dark Orange */
+}
+
+.badge-green {
+  background: #008000;
+}
+
+.status-blink {
+  animation: status-blink-anim 1s linear infinite;
+}
+
+@keyframes status-blink-anim {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
 * {
   margin: 0;
   padding: 0;
