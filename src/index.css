@@ -69,6 +69,14 @@
   background: #008000;
 }
 
+.badge-blue {
+  background: linear-gradient(135deg, #4facfe, #00f2fe);
+}
+
+.badge-indigo {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+}
+
 .status-blink {
   animation: status-blink-anim 1s linear infinite;
 }

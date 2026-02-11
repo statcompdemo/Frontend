@@ -2,18 +2,21 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { API_BASE_URL } from '../config';
-import { Clock, Download, UserPlus, UserMinus, Briefcase, ShieldCheck, Database, UploadCloud, Receipt, CalendarX, Send, FileText, AlertTriangle } from 'lucide-react';
+import { Eye, EyeOff, Clock, Download, UserPlus, UserMinus, Briefcase, ShieldCheck, Database, UploadCloud, Receipt, CalendarX, Send, FileText, AlertTriangle } from 'lucide-react';
 import { log } from '../utils/logger'; // Adjust the import based on your project structure
 
 function PasswordModal({ isOpen, onClose, customerName, onSubmit }) {
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
 
     if (!isOpen) return null;
 
     const handleSubmit = (e) => {
         e.preventDefault();
+        if (!password.trim()) return;
         onSubmit(password);
         setPassword('');
+        setShowPassword(false);
     };
 
     return (
@@ -29,14 +32,36 @@ function PasswordModal({ isOpen, onClose, customerName, onSubmit }) {
                     <form onSubmit={handleSubmit}>
                         <div className="form-group">
                             <label className="form-label">Password for {customerName}</label>
-                            <input
-                                type="password"
-                                className="form-input"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                placeholder="Enter password"
-                                autoFocus
-                            />
+                            <div className="password-input-wrapper" style={{ position: 'relative' }}>
+                                <input
+                                    type={showPassword ? "text" : "password"}
+                                    className="form-input"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    placeholder="Enter password"
+                                    autoFocus
+                                    style={{ paddingRight: '40px', width: '100%' }}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    style={{
+                                        position: 'absolute',
+                                        right: '10px',
+                                        top: '50%',
+                                        transform: 'translateY(-50%)',
+                                        background: 'none',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        color: 'var(--text-secondary)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        padding: '5px'
+                                    }}
+                                >
+                                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                </button>
+                            </div>
                         </div>
                     </form>
                 </div>
@@ -44,7 +69,7 @@ function PasswordModal({ isOpen, onClose, customerName, onSubmit }) {
                     <button className="btn btn-secondary" onClick={onClose}>
                         Cancel
                     </button>
-                    <button className="btn btn-primary" onClick={handleSubmit}>
+                    <button className="btn btn-primary" onClick={handleSubmit} disabled={!password.trim()}>
                         Submit
                     </button>
                 </div>
@@ -150,13 +175,22 @@ function Dashboard() {
     const [activeYear, setActiveYear] = useState(2025); // Fallback
 
 
-    const getStatusClass = (status, remark) => {
+    const getStatusClass = (status, remark, workflowStatus) => {
         const s = (status || '').toLowerCase().trim();
         const r = (remark || '').toLowerCase().trim();
+        const ws = (workflowStatus || '').toLowerCase().trim();
         let baseClass = 'status-badge';
 
         if (s === 'completed' || r.includes('pf compliance complete')) {
             return `${baseClass} badge-green`;
+        }
+
+        if (s === 'in process' || ws === 'reprocessing') {
+            return `${baseClass} badge-blue`;
+        }
+
+        if (ws === 'pf_sent_waiting') {
+            return `${baseClass} badge-yellow`;
         }
 
         // Pending logic
@@ -348,7 +382,8 @@ function Dashboard() {
             });
 
             if (response.ok) {
-                alert("Challan uploaded successfully!");
+                const result = await response.json();
+                alert(result.message || "Challan uploaded successfully!");
                 setChallanModalOpen(false);
                 fetchDashboardData();
             } else {
@@ -375,7 +410,8 @@ function Dashboard() {
             });
 
             if (response.ok) {
-                alert("Payment receipt uploaded! PF Compliance Complete.");
+                const result = await response.json();
+                alert(result.message || "Payment receipt uploaded! PF Compliance Complete.");
                 setPaymentModalOpen(false);
                 fetchDashboardData();
             } else {
@@ -414,31 +450,15 @@ function Dashboard() {
                 return;
             }
 
-            // ✅ SAME UX AS OLD
-            alert(`Password "${password}" submitted for ${selectedCustomer}`);
+            // ✅ SIMPLE SUCCESS MESSAGE
+            alert("Password submitted successfully.");
             setModalOpen(false);
 
-            // 🔁 refresh dashboard (important)
-            const refreshed = await refreshAndReturnDashboard();
+            // 🔁 refresh dashboard
+            await refreshAndReturnDashboard();
 
-            // 🔥 AUTO-TRIGGER OLD FEATURES
-            const row = refreshed.find(r => r.id === selectedLogId);
-            if (!row) return;
-
-            // PF Report
-            if (row.pfDownloadEnabled) {
-                handleDownload(row);
-            }
-
-            // Backlog Employee
-            if (row.backlogEmployeeEnabled) {
-                handleBacklogEmployee(row);
-            }
-
-            // Backlog Salary
-            if (row.backlogSalaryEnabled) {
-                handleBacklogSalary(row);
-            }
+            // Note: Auto-triggering of downloads/emails removed as the backend 
+            // now handles the full automation (process -> send PF report) automatically.
 
         } catch (error) {
             console.error('Error submitting password:', error);
@@ -755,7 +775,7 @@ function Dashboard() {
                                 <td>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                         <span
-                                            className={getStatusClass(row.status, row.remark)}
+                                            className={getStatusClass(row.status, row.remark, row.workflowStatus)}
                                             onClick={() => (row.hasPassword || row.isWaitingChallan || row.isWaitingPayment) && handleRemarkClick(row)}
                                             style={{ cursor: (row.hasPassword || row.isWaitingChallan || row.isWaitingPayment) ? 'pointer' : 'default' }}
                                         >
