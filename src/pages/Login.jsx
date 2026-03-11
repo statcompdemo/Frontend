@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 import { useState, useEffect } from "react";
+=======
+import { useState } from "react";
+>>>>>>> 06c6cea921ba7144397487b5d8bf6b7b8db5700e
 import { useNavigate } from "react-router-dom";
 import { User, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
 import "./Login.css";
@@ -15,6 +19,7 @@ export default function Login() {
     const [error, setError] = useState("");
     const navigate = useNavigate();
 
+<<<<<<< HEAD
     // Auto-redirect if already logged in
     useEffect(() => {
         const token = localStorage.getItem("token");
@@ -32,13 +37,18 @@ export default function Login() {
         }
     }, [navigate]);
 
+=======
+>>>>>>> 06c6cea921ba7144397487b5d8bf6b7b8db5700e
     const handleLogin = async (e) => {
         e.preventDefault();
         setError("");
         setIsLoading(true);
 
         try {
+<<<<<<< HEAD
             console.log("[Login] Attempting login for:", username);
+=======
+>>>>>>> 06c6cea921ba7144397487b5d8bf6b7b8db5700e
             const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
                 method: "POST",
                 headers: {
@@ -48,6 +58,7 @@ export default function Login() {
             });
 
             const data = await response.json();
+<<<<<<< HEAD
             console.log("[Login] Server Response:", data);
 
             if (response.ok) {
@@ -99,6 +110,18 @@ export default function Login() {
         } catch (error) {
             console.error("[Login] Connection Error:", error);
             setError("Connection error. Please check your internet or server status.");
+=======
+
+            if (response.ok) {
+                localStorage.setItem("token", data.token);
+                navigate("/app/dashboard");
+            } else {
+                setError("Invalid username or password");
+            }
+        } catch (error) {
+            console.error("Login error:", error);
+            setError("Connection error. Please check your internet.");
+>>>>>>> 06c6cea921ba7144397487b5d8bf6b7b8db5700e
         } finally {
             setIsLoading(false);
         }
@@ -119,6 +142,15 @@ export default function Login() {
                             <img src={companyLogo} alt="Compliance Track Logo" className="login-logo" />
                         </div>
                     </div>
+<<<<<<< HEAD
+=======
+
+                    {/* <div className="login-header">
+                        <h1>Welcome Back</h1>
+                        <p>Access your professional compliance dashboard</p>
+                    </div> */}
+
+>>>>>>> 06c6cea921ba7144397487b5d8bf6b7b8db5700e
                     <form onSubmit={handleLogin} className="login-form">
                         <div className="input-group">
                             <label>Username</label>
@@ -179,11 +211,16 @@ export default function Login() {
                             ) : (
                                 <>
                                     <span>Login</span>
+<<<<<<< HEAD
 
+=======
+                                    {/* <ArrowRight size={20} className="btn-icon" /> */}
+>>>>>>> 06c6cea921ba7144397487b5d8bf6b7b8db5700e
                                 </>
                             )}
                         </button>
 
+<<<<<<< HEAD
                         <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
                             <p style={{ fontSize: '12px', color: '#64748b', marginBottom: '0.5rem' }}>Trouble logging in?</p>
                             <button
@@ -206,6 +243,8 @@ export default function Login() {
                             </button>
                         </div>
 
+=======
+>>>>>>> 06c6cea921ba7144397487b5d8bf6b7b8db5700e
                         {error && (
                             <div className="login-error-message">
                                 <span>{error}</span>

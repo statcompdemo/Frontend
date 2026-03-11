@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 
 import Login from "./pages/Login";
@@ -52,6 +53,18 @@ import AccountsDashboard from "./pages/Accounts/Dashboard";
 
 
 import { log } from "./utils/logger";
+=======
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+
+import Login from "./pages/Login";
+import Dashboard from "./pages/Dashboard";
+import MyActivity from "./pages/MyActivity";
+import DailyWork from "./pages/DailyWork";
+import AssignedWork from "./pages/AssignedWork";
+
+import AppLayout from "./layouts/AppLayout";
+import { log } from "./utils/logger"; // Adjust the import based on your project structure
+>>>>>>> 06c6cea921ba7144397487b5d8bf6b7b8db5700e
 
 export default function App() {
     log('debug', "App component rendered");
@@ -62,6 +75,7 @@ export default function App() {
                 {/* Public Route */}
                 <Route path="/" element={<Login />} />
 
+<<<<<<< HEAD
                 {/* SPG User Protected App - /app/dashboard */}
 
                 <Route
@@ -146,6 +160,10 @@ export default function App() {
 
                 {/* Catch-all - redirect to login or dashboard */}
                 <Route path="*" element={<Navigate to="/" replace />} />
+=======
+                {/* Protected App */}
+                <Route path="/app/*" element={<AppLayout />} />
+>>>>>>> 06c6cea921ba7144397487b5d8bf6b7b8db5700e
             </Routes>
         </Router>
     );

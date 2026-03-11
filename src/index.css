@@ -277,7 +277,11 @@ body {
 /* Circle Cards Section */
 .circle-cards-section {
   display: grid;
+<<<<<<< HEAD
   grid-template-columns: repeat(5, 1fr);
+=======
+  grid-template-columns: repeat(4, 1fr);
+>>>>>>> 06c6cea921ba7144397487b5d8bf6b7b8db5700e
   gap: 0.75rem;
   margin-bottom: 2rem;
   max-width: 100%;
@@ -342,6 +346,7 @@ body {
   color: var(--text-primary);
 }
 
+<<<<<<< HEAD
 /* Stats Grid & Status Cards */
 .stats-grid {
   display: grid;
@@ -399,6 +404,8 @@ body {
   font-weight: 700;
 }
 
+=======
+>>>>>>> 06c6cea921ba7144397487b5d8bf6b7b8db5700e
 /* Table Styles */
 .table-container {
   background: var(--bg-card);

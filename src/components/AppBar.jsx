@@ -51,6 +51,7 @@ function AppBar() {
         return () => clearInterval(interval);
     }, []);
 
+<<<<<<< HEAD
     const userRole = localStorage.getItem("role")?.toLowerCase().trim() || "spg";
     const getPortalTitle = () => {
         if (userRole === "admin") return "Admin Portal";
@@ -61,6 +62,11 @@ function AppBar() {
     return (
         <div className="app-bar">
             {log('info', "Rendering AppBar title")}<h1 className="app-bar-title">{getPortalTitle()}</h1>
+=======
+    return (
+        <div className="app-bar">
+            {log('info', "Rendering AppBar title")}<h1 className="app-bar-title">SPG User Portal</h1>
+>>>>>>> 06c6cea921ba7144397487b5d8bf6b7b8db5700e
             <div className="app-bar-right">
                 {log('info', "Rendering notification icon")}<div className="notification-icon">
                     <Bell size={24} color="#667eea" />

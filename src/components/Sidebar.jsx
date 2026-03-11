@@ -1,6 +1,10 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+<<<<<<< HEAD
 import { LayoutDashboard, Activity, FileDown, Scale, AlertTriangle, LogOut, Users, UserCheck, History, Banknote, MessageSquare, File, ShieldCheck, FileText } from 'lucide-react';
 
+=======
+import { LayoutDashboard, Activity, FileDown, Scale, AlertTriangle, LogOut } from 'lucide-react';
+>>>>>>> 06c6cea921ba7144397487b5d8bf6b7b8db5700e
 import { log } from '../utils/logger';
 
 function Sidebar({ onWIPClick }) {
@@ -8,8 +12,11 @@ function Sidebar({ onWIPClick }) {
     const location = useLocation();
     const navigate = useNavigate();
 
+<<<<<<< HEAD
     const userRole = localStorage.getItem("role")?.toLowerCase().trim() || "spg";
 
+=======
+>>>>>>> 06c6cea921ba7144397487b5d8bf6b7b8db5700e
     const handleLogout = () => {
         log('info', "Logout clicked");
         localStorage.clear();
@@ -17,6 +24,7 @@ function Sidebar({ onWIPClick }) {
         navigate("/", { replace: true });
     };
 
+<<<<<<< HEAD
     const renderMenuItems = () => {
         if (userRole === "admin") {
             return (
@@ -177,6 +185,12 @@ function Sidebar({ onWIPClick }) {
         // Default SPG items
         return (
             <>
+=======
+    return (
+        <div className="sidebar">
+            {log('info', "Rendering sidebar menu items")}
+            <ul className="sidebar-menu">
+>>>>>>> 06c6cea921ba7144397487b5d8bf6b7b8db5700e
                 <li className="menu-item">
                     <Link
                         to="/app/dashboard"
@@ -198,6 +212,7 @@ function Sidebar({ onWIPClick }) {
                     </Link>
                 </li>
                 <li className="menu-item">
+<<<<<<< HEAD
                     <Link
                         to="/app/manage-files"
                         className={`menu-link ${location.pathname === '/app/manage-files' ? 'active' : ''}`}
@@ -276,6 +291,46 @@ function Sidebar({ onWIPClick }) {
             {log('info', "Rendering sidebar menu items")}
             <ul className="sidebar-menu">
                 {renderMenuItems()}
+=======
+                    <div
+                        className="menu-link"
+                        onClick={() => {
+                            log('info', "Monthly Report Download clicked");
+                            onWIPClick();
+                        }}
+                        style={{ cursor: 'pointer' }}
+                    >
+                        <FileDown size={20} />
+                        <span>Monthly Report Download</span>
+                    </div>
+                </li>
+                <li className="menu-item">
+                    <div
+                        className="menu-link"
+                        onClick={() => {
+                            log('info', "Reconciliation clicked");
+                            onWIPClick();
+                        }}
+                        style={{ cursor: 'pointer' }}
+                    >
+                        <Scale size={20} />
+                        <span>Reconciliation</span>
+                    </div>
+                </li>
+                <li className="menu-item">
+                    <div
+                        className="menu-link"
+                        onClick={() => {
+                            log('info', "Escalation Management clicked");
+                            onWIPClick();
+                        }}
+                        style={{ cursor: 'pointer' }}
+                    >
+                        <AlertTriangle size={20} />
+                        <span>Escalation Management</span>
+                    </div>
+                </li>
+>>>>>>> 06c6cea921ba7144397487b5d8bf6b7b8db5700e
                 <li className="menu-item" style={{ marginTop: 'auto', borderTop: '1px solid var(--border-color)', paddingTop: '0.5rem' }}>
                     <div
                         className="menu-link"
@@ -287,9 +342,12 @@ function Sidebar({ onWIPClick }) {
                     </div>
                 </li>
             </ul>
+<<<<<<< HEAD
             <div style={{ padding: '1rem', fontSize: '10px', color: '#64748b', textAlign: 'center', opacity: 0.6 }}>
                 Logged in as: <span style={{ color: '#3b82f6', fontWeight: 'bold' }}>{userRole}</span>
             </div>
+=======
+>>>>>>> 06c6cea921ba7144397487b5d8bf6b7b8db5700e
         </div>
     );
 }

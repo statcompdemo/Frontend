@@ -1,5 +1,14 @@
 import { useState } from "react";
+<<<<<<< HEAD
 import { Outlet } from "react-router-dom";
+=======
+import { Routes, Route } from "react-router-dom";
+
+import Dashboard from "../pages/Dashboard";
+import MyActivity from "../pages/MyActivity";
+import DailyWork from "../pages/DailyWork";
+import AssignedWork from "../pages/AssignedWork";
+>>>>>>> 06c6cea921ba7144397487b5d8bf6b7b8db5700e
 
 import AppBar from "../components/AppBar";
 import Sidebar from "../components/Sidebar";
@@ -22,7 +31,16 @@ export default function AppLayout() {
                 }} />
 
                 <div className="content">
+<<<<<<< HEAD
                     {log('info', "Rendering Outlet for child routes")}<Outlet />
+=======
+                    {log('info', "Rendering Routes")}<Routes>
+                        <Route path="dashboard" element={<Dashboard />} />
+                        <Route path="MyActivity" element={<MyActivity />} />
+                        <Route path="DailyWork" element={<DailyWork />} />
+                        <Route path="AssignedWork" element={<AssignedWork />} />
+                    </Routes>
+>>>>>>> 06c6cea921ba7144397487b5d8bf6b7b8db5700e
                 </div>
             </div>
 
